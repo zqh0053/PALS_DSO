@@ -61,7 +61,21 @@ class Wavetools():
             i = i - 1
         return i
 
-#time0000oooooooooooooooo0000000000000000000ooooooooooooo
+    def get_slope(self):
+        max_channel = self.voltage0.index(self.max_0)
+        slope = (self.max_0 - self.base)/(self.time0[max_channel] - self.time0[self.start_c])
+        return slope
+
+    def get_slope_max(self):
+        max_channel = self.voltage0.index(self.max_0)
+        slope = 0.
+        for i in range(self.start_c, max_channel):
+            m = (self.voltage0[i + 1] - self.voltage0[i])/(self.time0[i + 1] - self.time0[i])
+            if m > slope:
+                slope = m
+        return slope
+
+# time0000oooooooooooooooo0000000000000000000ooooooooooooo
 
     def get_time_led_linear(self, thr):
         # start_c = self.find_startchannel()
@@ -118,18 +132,5 @@ class Wavetools():
                 x2 = x2 + 0.005
         return t_1
 
-    def get_slope(self):
-        max_channel = self.voltage0.index(self.max_0)
-        slope = (self.max_0 - self.base)/(self.time0[max_channel] - self.time0[self.start_c])
-        return slope
-
-    def get_slope_max(self):
-        max_channel = self.voltage0.index(self.max_0)
-        slope = 0.
-        for i in range(self.start_c, max_channel):
-            m = (self.voltage0[i + 1] - self.voltage0[i])/(self.time0[i + 1] - self.time0[i])
-            if m > slope:
-                slope = m
-        return slope
 
 
