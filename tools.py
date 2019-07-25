@@ -132,5 +132,43 @@ class Wavetools():
                 x2 = x2 + 0.005
         return t_1
 
+    def get_time_led_poln(self, thr, poln, range0): # threshold
+        #start_c = self.find_startchannel()
+        t_0 = self.time0[self.start_c]
+        n = self.start_c
+        x1 = []
+        y1 = []
+        linear_0 = 1
+        num_p = 0
+        t_1 = 0
+        for i in range(0, len(self.voltage0)):
+            x1.append(self.time0[n])
+            y1.append(self.voltage0[n])
+            if self.voltage0[n] > (range0*(self.max_0 - self.base) + self.base):
+                num_p = i
+                break
+            n = n+1
+        if (num_p + 1) > poln:
+            f1 = np.polyfit(x1, y1, poln)
+            p1 = np.poly1d(f1)
+        else:
+            linear_0 = 0
+        if linear_0 == 0:
+            for i in range(self.start_c, len(self.voltage0)):
+                if self.voltage0[i] > (thr*(self.max_0 - self.base) + self.base):
+                    t_1 = (thr + self.base - self.voltage0[i - 1]) * (
+                                self.time0[i] - self.time0[i - 1]) / (self.voltage0[i] - self.voltage0[i - 1]) + \
+                          self.time0[i - 1]
+        else:
+            x2 = t_0
+            while x2 < 500:
+                y2 = p1(x2)
+                if y2 > (thr * (self.max_0 - self.base) + self.base):
+                    y2_0 = p1(x2 - 0.005)
+                    t_1 = (thr + self.base - y2_0) * 0.005 / (y2 - y2_0) + \
+                          x2 - 0.005
+                    break
+                x2 = x2 + 0.005
+        return t_1
 
 
