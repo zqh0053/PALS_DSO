@@ -548,6 +548,8 @@ class myFrame(wx.Frame):
 
                         if e_1 > self.lt_start_l and e_1 < self.lt_start_r \
                                 and e_2 > self.lt_stop_l and e_2 < self.lt_stop_r :
+                            # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                            # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
                             t_start = t1.get_time_cfd_linear(self.start_fraction)
                             t_stop = t2.get_time_cfd_linear(self.stop_fraction)
                             self.lifetime.append(t_stop - t_start)
@@ -569,12 +571,14 @@ class myFrame(wx.Frame):
                     self.c_num_1 = self.c_num_1 + 1
                     if e_1 > self.lt_start_l and e_1 < self.lt_start_r and e_2 > self.lt_stop_l \
                             and e_2 < self.lt_stop_r:
+                        # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                        # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
                         t_start = t1.get_time_cfd_linear(self.start_fraction)
                         t_stop = t2.get_time_cfd_linear(self.stop_fraction)
                         self.lifetime.append(t_stop - t_start)
                         c_num_2 = c_num_2 + 1
                         self.total_counts = self.total_counts + 1
-                if self.c_num_1 % 1000 == 0:
+                if self.c_num_1 % 500 == 0:
                     self.drawHistF_lt.clf()
                     self.a_lt = self.drawHistF_lt.add_subplot(111)
                     self.h_lifetime = self.a_lt.hist(self.lifetime, self.lt_bins, range=(self.lt_l, self.lt_r))
