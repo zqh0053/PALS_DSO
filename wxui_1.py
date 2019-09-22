@@ -35,6 +35,7 @@ class myFrame(wx.Frame):
         self.lt_r = 10.0
         self.total_counts = 0
         self.counts_set = 1000000
+        self.waveloop = []
 
         self.note1 = wx.Notebook(self)
         #建立page
@@ -227,6 +228,8 @@ class myFrame(wx.Frame):
         self.lt_counts_text = wx.TextCtrl(self.lt_box2, -1, str(self.total_counts), style=wx.TE_CENTER)
         self.lt_but_save = wx.Button(self.lt_box2, -1, 'save')
         self.lt_but_save.Bind(wx.EVT_BUTTON, self.save_file)
+        self.lt_but_save2 = wx.Button(self.lt_box2, -1, 'save all')
+        self.lt_but_save2.Bind(wx.EVT_BUTTON, self.save_file2)
         self.ltb2_gridsizer.Add(self.lt_but1, pos=(0, 0), flag=wx.EXPAND)
         self.ltb2_gridsizer.Add(self.lt_but2, pos=(0, 1), flag=wx.EXPAND)
         self.ltb2_gridsizer.Add(self.lt_but3, pos=(0, 2), flag=wx.EXPAND)
@@ -235,6 +238,7 @@ class myFrame(wx.Frame):
         self.ltb2_gridsizer.Add(self.lt_counts_stext, pos=(2, 0), flag=wx.EXPAND)
         self.ltb2_gridsizer.Add(self.lt_counts_text, pos=(2, 1), flag=wx.EXPAND)
         self.ltb2_gridsizer.Add(self.lt_but_save, pos=(3, 0), flag=wx.EXPAND)
+        self.ltb2_gridsizer.Add(self.lt_but_save2, pos=(3, 1), flag=wx.EXPAND)
         self.lt_box2.Fit()
 
         # 下方区域
@@ -333,6 +337,8 @@ class myFrame(wx.Frame):
         self.energy_c2 = []
         self.amp_c2 = []
         self.lifetime = []
+        self.start_energy = []
+        self.stop_energy = []
         self.wave0 = []
         self.wave1 = []
         self.lt_spe = []
@@ -373,6 +379,8 @@ class myFrame(wx.Frame):
         e_c_box = wx.MessageDialog(None, u"是否真的要清除显示寿命谱？", u"请确认", style=wx.OK|wx.CANCEL)
         if e_c_box.ShowModal() == wx.ID_OK:
             self.lifetime = []
+            self.start_energy = []
+            self.stop_energy = []
             self.drawHistF_lt.clf()
             self.drawHistCanvas_lt.draw()
             self.total_counts = 0
@@ -448,8 +456,12 @@ class myFrame(wx.Frame):
         self.th1.start()
 
     def run_loop_lt(self):
-        self.th2 = threading.Thread(target=self.loop_lifetime_test)
-        self.th2.start()
+        # self.th2 = threading.Thread(target=self.loop_lifetime_test)
+        # self.th2.start()
+        self.th3 = threading.Thread(target=self.loop_lt_t1)
+        self.th3.start()
+        self.th4 = threading.Thread(target=self.loop_lt_t2)
+        self.th4.start()
 
     def loop_test(self):
         while self.dos_0.isOpen():
@@ -529,6 +541,7 @@ class myFrame(wx.Frame):
     def loop_lifetime_test(self):
         self.c_num_1 = 0
         t_01 = time.time()
+        t_05 = time.time()
         while self.dos_0.isOpen():
             c_num_2 = 0
             waveform0 = self.dos_0.get_wave()
@@ -548,11 +561,13 @@ class myFrame(wx.Frame):
 
                         if e_1 > self.lt_start_l and e_1 < self.lt_start_r \
                                 and e_2 > self.lt_stop_l and e_2 < self.lt_stop_r :
-                            # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
-                            # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
-                            t_start = t1.get_time_cfd_linear(self.start_fraction)
-                            t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                            t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                            t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                            # t_start = t1.get_time_cfd_linear(self.start_fraction)
+                            # t_stop = t2.get_time_cfd_linear(self.stop_fraction)
                             self.lifetime.append(t_stop - t_start)
+                            self.start_energy.append(e_1)
+                            self.stop_energy.append(e_2)
                             #print(t_stop - t_start)
                             c_num_2 = c_num_2 + 1
                             self.total_counts = self.total_counts + 1
@@ -576,6 +591,8 @@ class myFrame(wx.Frame):
                         t_start = t1.get_time_cfd_linear(self.start_fraction)
                         t_stop = t2.get_time_cfd_linear(self.stop_fraction)
                         self.lifetime.append(t_stop - t_start)
+                        self.start_energy.append(e_1)
+                        self.stop_energy.append(e_2)
                         c_num_2 = c_num_2 + 1
                         self.total_counts = self.total_counts + 1
                 if self.c_num_1 % 500 == 0:
@@ -592,7 +609,95 @@ class myFrame(wx.Frame):
 
             self.wave1 = waveform0['c1'][1]
             if self.total_counts > self.counts_set:
+                self.dos_0.close()
+                self.e_start_but = 0
                 break
+        t_06 = time.time()
+        print(t_06 - t_05)
+
+    def loop_lt_t1(self):
+        while self.dos_0.isOpen():
+            waveform0 = self.dos_0.get_wave()
+            if operator.eq(self.wave1, waveform0['c1'][1]) == False:
+                # print(len(self.waveloop))
+                if len(self.waveloop) < 20:
+                    self.waveloop.append(waveform0)
+            self.wave1 = waveform0['c1'][1]
+
+    def loop_lt_t2(self):
+        self.c_num_1 = 0
+        t_05 = time.time()
+        t_01 = time.time()
+        while self.dos_0.isOpen():
+            c_num_2 = 0
+            if len(self.waveloop) > 0:
+                if self.para_0['SEQ'] == 'ON':
+                    for i in range(0, self.para_0['SEQ_N']):
+                        # c1
+                        t1 = tools.Wavetools(self.waveloop[0]['c1'][0][i], self.waveloop[0]['c1'][1][i])
+                        e_1 = t1.get_energy(0.2)
+                        amp_1 = t1.get_amplitude()
+
+                        # c2
+                        t2 = tools.Wavetools(self.waveloop[0]['c2'][0][i], self.waveloop[0]['c2'][1][i])
+                        e_2 = t2.get_energy(0.2)
+                        amp_2 = t2.get_amplitude()
+                        self.c_num_1 = self.c_num_1 + 1
+
+                        if e_1 > self.lt_start_l and e_1 < self.lt_start_r \
+                                and e_2 > self.lt_stop_l and e_2 < self.lt_stop_r :
+                            t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                            t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                            # t_start = t1.get_time_cfd_linear(self.start_fraction)
+                            # t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                            self.lifetime.append(t_stop - t_start)
+                            self.start_energy.append(e_1)
+                            self.stop_energy.append(e_2)
+                            #print(t_stop - t_start)
+                            c_num_2 = c_num_2 + 1
+                            self.total_counts = self.total_counts + 1
+
+                else:
+                    # c1
+                    t1 = tools.Wavetools(self.waveloop[0]['c1'][0], self.waveloop[0]['c1'][1])
+                    e_1 = t1.get_energy(0.2)
+                    amp_1 = t1.get_amplitude()
+
+                    # c2
+                    t2 = tools.Wavetools(self.waveloop[0]['c2'][0], self.waveloop[0]['c2'][1])
+                    e_2 = t2.get_energy(0.2)
+                    amp_2 = t2.get_amplitude()
+
+                    self.c_num_1 = self.c_num_1 + 1
+                    if e_1 > self.lt_start_l and e_1 < self.lt_start_r and e_2 > self.lt_stop_l \
+                            and e_2 < self.lt_stop_r:
+                        # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                        # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                        t_start = t1.get_time_cfd_linear(self.start_fraction)
+                        t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                        self.lifetime.append(t_stop - t_start)
+                        self.start_energy.append(e_1)
+                        self.stop_energy.append(e_2)
+                        c_num_2 = c_num_2 + 1
+                        self.total_counts = self.total_counts + 1
+                if self.c_num_1 % 500 == 0:
+                    self.drawHistF_lt.clf()
+                    self.a_lt = self.drawHistF_lt.add_subplot(111)
+                    self.h_lifetime = self.a_lt.hist(self.lifetime, self.lt_bins, range=(self.lt_l, self.lt_r))
+                    self.a_lt.semilogy()
+                    self.drawHistCanvas_lt.draw()
+                t_02 = time.time()
+                self.cps = c_num_2/(t_02 - t_01)
+                self.lt_cps_text.SetValue(str(int(self.cps)))
+                self.lt_counts_text.SetValue(str(self.total_counts))
+                self.waveloop.pop(0)
+                t_01 = time.time()
+            if self.total_counts > self.counts_set:
+                self.dos_0.close()
+                self.e_start_but = 0
+                break
+        t_06 = time.time()
+        print(t_06 - t_05)
 
     def save_file(self, event):
         '''
@@ -611,6 +716,30 @@ class myFrame(wx.Frame):
                     f.write('bin_width: ' + str((self.lt_r - self.lt_l)/self.lt_bins) + '\n')
                     for i in range(0, len(text[0])):
                         f.write(str(int(text[0][i])) + '\n')
+                    save_msg = wx.MessageDialog(self, '文件已保存', '提示')
+            except FileNotFoundError:
+                save_msg = wx.MessageDialog(self, '保存失败,无效的保存路径', '提示')
+        else:
+            save_msg = wx.MessageDialog(self, '未选择保存路径', '错误')
+
+        save_msg.ShowModal()
+        save_msg.Destroy()
+
+    def save_file2(self, event):
+        '''
+        保存文件内容
+        与菜单中的保存选项绑定
+        '''
+        self.dir_name = ''
+        fd = wx.FileDialog(self, '把文件保存到何处', self.dir_name,
+                'out1.txt', 'TEXT file(*.txt)|*.txt', wx.FD_SAVE)
+        if fd.ShowModal() == wx.ID_OK:
+            self.file_name = fd.GetFilename()
+            self.dir_name = fd.GetDirectory()
+            try:
+                with open(os.path.join(self.dir_name, self.file_name), 'w', encoding='utf-8') as f:
+                    for i in range(0, len(self.lifetime)):
+                        f.write(str(self.lifetime[i]) + ' ' + str(self.start_energy[i]) + ' ' + str(self.stop_energy[i]) + '\n')
                     save_msg = wx.MessageDialog(self, '文件已保存', '提示')
             except FileNotFoundError:
                 save_msg = wx.MessageDialog(self, '保存失败,无效的保存路径', '提示')

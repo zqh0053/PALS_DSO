@@ -42,7 +42,7 @@ with open(filename1) as file1_object:
 tr1 = tl1.Wavetools(time_1, volt_1, basenum=9000)
 print(tr1.find_baseline())
 t_0 = time.time()
-for i in range(0, 100000):
+for i in range(0, 100):
     # tr1.get_time_cfd_linear(0.2)
     tr1.get_time_cfd_poln(0.2, 3, 0.4)
     # print(tr1.get_time_cfd_linear(0.2))
@@ -50,7 +50,7 @@ for i in range(0, 100000):
 t_1 = time.time()
 print('time')
 print(t_1 - t_0)
-# print(tr1.get_slope())
+print(tr1.get_slope())
 l1 = plt.plot(time_1, volt_1)
 plt.show()
 
@@ -59,6 +59,10 @@ str2 = 1
 str3 = "asd " + str(str2)
 print(str3)
 
+test_l = [0, 1, 3, 168, 172]
+print(len(test_l))
+test_l.pop(0)
+print(test_l)
 # import wx
 # import os
 

@@ -117,9 +117,8 @@ class Wavetools():
         if linear_0 == 0:
             for i in range(self.start_c, len(self.voltage0)):
                 if self.voltage0[i] > (fraction*(self.max_0 - self.base) + self.base):
-                    t_1 = (fraction * (self.max_0 - self.base) + self.base - self.voltage0[i - 1]) * (
-                                self.time0[i] - self.time0[i - 1]) / (self.voltage0[i] - self.voltage0[i - 1]) + \
-                          self.time0[i - 1]
+                    t_1 = (fraction*(self.max_0 - self.base) + self.base - self.voltage0[i-1]) * (self.time0[i] - self.time0[i-1])/(self.voltage0[i] - self.voltage0[i-1]) + self.time0[i-1]
+                    break
         else:
             x2 = t_0
             while x2 < 500:
