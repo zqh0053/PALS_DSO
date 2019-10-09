@@ -37,10 +37,15 @@ class Dso():
         # c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 200000, 0)
         # c2_waveform_time = list(c2_waveform_0[0])
         # c2_waveform_v = list(c2_waveform_0[1])
+        c1_waveform_0 = []
+        c2_waveform_0 = []
         c1_waveform_0 = self.dso.GetScaledWaveformWithTimes("C1", 300000, 0)
+        c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 300000, 0)
+        while len(c1_waveform_0) == 0 or len(c2_waveform_0) == 0:
+            c1_waveform_0 = self.dso.GetScaledWaveformWithTimes("C1", 300000, 0)
+            c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 300000, 0)
         c1_waveform_time = np.array(c1_waveform_0[0])
         c1_waveform_v = np.array(c1_waveform_0[1])
-        c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 300000, 0)
         c2_waveform_time = np.array(c2_waveform_0[0])
         c2_waveform_v = np.array(c2_waveform_0[1])
         if self.parameters['polarity'] == 'negative':

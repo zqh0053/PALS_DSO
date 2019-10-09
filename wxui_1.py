@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
+from scipy import interpolate
 
 class myFrame(wx.Frame):
     def __init__(self):
@@ -29,6 +30,10 @@ class myFrame(wx.Frame):
         self.lt_stop_l = 0.
         self.lt_stop_r = 300.
         self.stop_fraction = 0.2
+        self.lt_sp_start_l = 0.
+        self.lt_sp_start_r = 300.
+        self.lt_sp_stop_l = 0.
+        self.lt_sp_stop_r = 300.
         self.cps = 0.
         self.lt_bins = 100
         self.lt_l = -10.0
@@ -36,6 +41,7 @@ class myFrame(wx.Frame):
         self.total_counts = 0
         self.counts_set = 1000000
         self.waveloop = []
+        self.intplo_switch = 1
 
         self.note1 = wx.Notebook(self)
         #建立page
@@ -329,6 +335,20 @@ class myFrame(wx.Frame):
         self.ltb3c2_but1 = wx.Button(self.ltb3_c2_panel, -1, 'set', size=(200, 30))
         self.ltb3c2_but1.Bind(wx.EVT_BUTTON, self.lt_sp_set)
         self.ltb3c2_gridsizer.Add(self.ltb3c2_but1, span=(1, 2), pos=(4, 1), flag=wx.EXPAND)
+        # display_sp
+        self.ltb3c2_sp_start_l = wx.TextCtrl(self.ltb3_c2_panel, -1, str(self.lt_sp_start_l), style=wx.TE_CENTER)
+        self.ltb3c2_gridsizer.Add(self.ltb3c2_sp_start_l, span=(1, 1), pos=(5, 0), flag=wx.EXPAND)
+        self.ltb3c2_sp_start_r = wx.TextCtrl(self.ltb3_c2_panel, -1, str(self.lt_sp_start_r), style=wx.TE_CENTER)
+        self.ltb3c2_gridsizer.Add(self.ltb3c2_sp_start_r, span=(1, 1), pos=(5, 1), flag=wx.EXPAND)
+
+        self.ltb3c2_sp_stop_l = wx.TextCtrl(self.ltb3_c2_panel, -1, str(self.lt_sp_stop_l), style=wx.TE_CENTER)
+        self.ltb3c2_gridsizer.Add(self.ltb3c2_sp_stop_l, span=(1, 1), pos=(5, 2), flag=wx.EXPAND)
+        self.ltb3c2_sp_stop_r = wx.TextCtrl(self.ltb3_c2_panel, -1, str(self.lt_sp_stop_r), style=wx.TE_CENTER)
+        self.ltb3c2_gridsizer.Add(self.ltb3c2_sp_stop_r, span=(1, 1), pos=(5, 3), flag=wx.EXPAND)
+
+        self.ltb3c2_but2 = wx.Button(self.ltb3_c2_panel, -1, 'set', size=(200, 30))
+        self.ltb3c2_but2.Bind(wx.EVT_BUTTON, self.lt_sp_e_set)
+        self.ltb3c2_gridsizer.Add(self.ltb3c2_but2, span=(1, 2), pos=(6, 1), flag=wx.EXPAND)
 
         # 参数
         self.m = 3.0
@@ -337,6 +357,8 @@ class myFrame(wx.Frame):
         self.energy_c2 = []
         self.amp_c2 = []
         self.lifetime = []
+        self.lifetime_linear = []
+        self.lifetime_sp = []
         self.start_energy = []
         self.stop_energy = []
         self.wave0 = []
@@ -345,13 +367,13 @@ class myFrame(wx.Frame):
         self.e_start_but = 0
         self.lt_start_but_switch = 0
 
-    def start_but(self,event):
+    def start_but(self, event):
         if self.e_start_but == 0:
             self.dos_0.open()
             self.run_loop()
             self.e_start_but = 1
 
-    def stop_but(self,event):
+    def stop_but(self, event):
         self.dos_0.close()
         self.e_start_but = 0
 
@@ -379,18 +401,20 @@ class myFrame(wx.Frame):
         e_c_box = wx.MessageDialog(None, u"是否真的要清除显示寿命谱？", u"请确认", style=wx.OK|wx.CANCEL)
         if e_c_box.ShowModal() == wx.ID_OK:
             self.lifetime = []
+            self.lifetime_sp = []
+            self.lifetime_linear = []
             self.start_energy = []
             self.stop_energy = []
             self.drawHistF_lt.clf()
             self.drawHistCanvas_lt.draw()
             self.total_counts = 0
 
-    def e_c1_set_trlv(self,event):
+    def e_c1_set_trlv(self, event):
         str0 = self.eb3c1_trlv.GetValue()
         self.para_0['C1_TRLV'] = float(str0)
         self.dos_0.setDSO('C1:TRLV ' + str(self.para_0['C1_TRLV']))
 
-    def e_c1_set_range(self,event):
+    def e_c1_set_range(self, event):
         str0 = float(self.eb3c1_erg_l.GetValue())
         str1 = float(self.eb3c1_erg_r.GetValue())
         str2 = float(self.eb3c1_amp_l.GetValue())
@@ -451,6 +475,31 @@ class myFrame(wx.Frame):
             self.lt_bins = str2
             self.counts_set = str3
 
+    def lt_sp_e_set(self, event):
+        str0 = float(self.ltb3c2_sp_start_l.GetValue())
+        str1 = float(self.ltb3c2_sp_start_r.GetValue())
+        str2 = float(self.ltb3c2_sp_stop_l.GetValue())
+        str3 = float(self.ltb3c2_sp_stop_r.GetValue())
+        if str0 >= str1 or str2 >= str3:
+            e_c_box = wx.MessageBox("下阈应小于上阈", "Error")
+        else:
+            self.lt_sp_start_l = str0
+            self.lt_sp_start_r = str1
+            self.lt_sp_stop_l = str2
+            self.lt_sp_stop_r = str3
+            self.lifetime_sp = []
+            if len(self.lifetime) > 0:
+                for i in range(0, len(self.lifetime)):
+                    if self.start_energy[i] > self.lt_sp_start_l and self.start_energy[i] < self.lt_sp_start_r \
+                        and self.stop_energy[i] > self.lt_sp_stop_l and self.stop_energy[i] < self.lt_sp_stop_r:
+                        self.lifetime_sp.append(self.lifetime[i])
+                self.drawHistF_lt.clf()
+                self.a_lt = self.drawHistF_lt.add_subplot(111)
+                self.h_lifetime = self.a_lt.hist(self.lifetime_sp, self.lt_bins, range=(self.lt_l, self.lt_r))
+                self.a_lt.semilogy()
+                self.drawHistCanvas_lt.draw()
+
+
     def run_loop(self):
         self.th1 = threading.Thread(target=self.loop_energy_test)
         self.th1.start()
@@ -487,6 +536,21 @@ class myFrame(wx.Frame):
             if operator.eq(self.wave0, waveform0['c1'][1]) == False:
                 if self.para_0['SEQ'] == 'ON':
                     for i in range(0,self.para_0['SEQ_N']):
+                        if self.intplo_switch == 1:
+                            f1 = interpolate.interp1d(waveform0['c1'][0][i], waveform0['c1'][1][i],
+                                                      kind='quadratic')
+                            wave_01 = np.linspace(waveform0['c1'][0][i][0], waveform0['c1'][0][i][-1],
+                                                  5 * (len(waveform0['c1'][0][i]) - 1) + 1)
+                            wave_02 = f1(wave_01)
+                            waveform0['c1'][0][i] = wave_01.tolist()
+                            waveform0['c1'][1][i] = wave_02.tolist()
+                            f2 = interpolate.interp1d(waveform0['c2'][0][i], waveform0['c2'][1][i],
+                                                      kind='quadratic')
+                            wave_03 = np.linspace(waveform0['c2'][0][i][0], waveform0['c2'][0][i][-1],
+                                                  5 * (len(waveform0['c2'][0][i]) - 1) + 1)
+                            wave_04 = f2(wave_03)
+                            waveform0['c2'][0][i] = wave_03.tolist()
+                            waveform0['c2'][1][i] = wave_04.tolist()
                         #c1
                         t1 = tools.Wavetools(waveform0['c1'][0][i],waveform0['c1'][1][i], 800)
                         e_1 = t1.get_energy(0.2)
@@ -549,6 +613,12 @@ class myFrame(wx.Frame):
                 if self.para_0['SEQ'] == 'ON':
                     for i in range(0, self.para_0['SEQ_N']):
                         # c1
+                        if self.intplo_switch == 1:
+                            f1 = interpolate.interp1d(waveform0['c1'][0][i], waveform0['c1'][1][i], kind='quadratic')
+                            wave_01 = np.linspace(waveform0['c1'][0][i][0], waveform0['c1'][0][i][-1], 5*(len(waveform0['c1'][0][i]) - 1) + 1)
+                            wave_02 = f1(wave_01)
+                            waveform0['c1'][0][i] = wave_01
+                            waveform0['c1'][1][i] = wave_02
                         t1 = tools.Wavetools(waveform0['c1'][0][i], waveform0['c1'][1][i])
                         e_1 = t1.get_energy(0.2)
                         amp_1 = t1.get_amplitude()
@@ -561,19 +631,34 @@ class myFrame(wx.Frame):
 
                         if e_1 > self.lt_start_l and e_1 < self.lt_start_r \
                                 and e_2 > self.lt_stop_l and e_2 < self.lt_stop_r :
-                            t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
-                            t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                            # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                            # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
                             # t_start = t1.get_time_cfd_linear(self.start_fraction)
-                            # t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                            # t_stop = t2.get_time_cfd_linear(self.start_fraction)
+                            t_start = t1.get_time_cfd_interpolation(self.start_fraction)
+                            t_stop = t2.get_time_cfd_interpolation(self.start_fraction)
+                            # t_start_l = t1.get_time_cfd_linear(self.start_fraction)
+                            # t_stop_l = t2.get_time_cfd_linear(self.stop_fraction)
                             self.lifetime.append(t_stop - t_start)
+                            # self.lifetime_linear.append(t_stop_l - t_start_l)
                             self.start_energy.append(e_1)
                             self.stop_energy.append(e_2)
-                            #print(t_stop - t_start)
+                            # print(t_stop - t_start)
                             c_num_2 = c_num_2 + 1
                             self.total_counts = self.total_counts + 1
+                            if e_1 > self.lt_sp_start_l and e_1 < self.lt_sp_start_r and e_2 > self.lt_sp_stop_l \
+                                    and e_2 < self.lt_sp_stop_r:
+                                self.lifetime_sp.append(t_stop - t_start)
 
                 else:
                     # c1
+                    if self.intplo_switch == 1:
+                        f1 = interpolate.interp1d(waveform0['c1'][0][i], waveform0['c1'][1][i], kind='quadratic')
+                        wave_01 = np.linspace(waveform0['c1'][0][i][0], waveform0['c1'][0][i][-1],
+                                              5 * (len(waveform0['c1'][0][i]) - 1) + 1)
+                        wave_02 = f1(wave_01)
+                        waveform0['c1'][0][i] = wave_01
+                        waveform0['c1'][1][i] = wave_02
                     t1 = tools.Wavetools(waveform0['c1'][0], waveform0['c1'][1])
                     e_1 = t1.get_energy(0.2)
                     amp_1 = t1.get_amplitude()
@@ -586,19 +671,23 @@ class myFrame(wx.Frame):
                     self.c_num_1 = self.c_num_1 + 1
                     if e_1 > self.lt_start_l and e_1 < self.lt_start_r and e_2 > self.lt_stop_l \
                             and e_2 < self.lt_stop_r:
-                        # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
-                        # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
-                        t_start = t1.get_time_cfd_linear(self.start_fraction)
-                        t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                        t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
+                        t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                        # t_start_l = t1.get_time_cfd_linear(self.start_fraction)
+                        # t_stop_l = t2.get_time_cfd_linear(self.stop_fraction)
                         self.lifetime.append(t_stop - t_start)
+                        # self.lifetime_linear.append(t_stop_l - t_start_l)
                         self.start_energy.append(e_1)
                         self.stop_energy.append(e_2)
                         c_num_2 = c_num_2 + 1
                         self.total_counts = self.total_counts + 1
+                        if e_1 > self.lt_sp_start_l and e_1 < self.lt_sp_start_r and e_2 > self.lt_sp_stop_l \
+                                and e_2 < self.lt_sp_stop_r:
+                            self.lifetime_sp.append(t_stop - t_start)
                 if self.c_num_1 % 500 == 0:
                     self.drawHistF_lt.clf()
                     self.a_lt = self.drawHistF_lt.add_subplot(111)
-                    self.h_lifetime = self.a_lt.hist(self.lifetime, self.lt_bins, range=(self.lt_l, self.lt_r))
+                    self.h_lifetime = self.a_lt.hist(self.lifetime_sp, self.lt_bins, range=(self.lt_l, self.lt_r))
                     self.a_lt.semilogy()
                     self.drawHistCanvas_lt.draw()
                 t_02 = time.time()
@@ -633,6 +722,35 @@ class myFrame(wx.Frame):
             if len(self.waveloop) > 0:
                 if self.para_0['SEQ'] == 'ON':
                     for i in range(0, self.para_0['SEQ_N']):
+                        if self.intplo_switch == 1:
+                            f1 = interpolate.interp1d(self.waveloop[0]['c1'][0][i], self.waveloop[0]['c1'][1][i],
+                                                      kind='cubic')
+                            wave_01 = np.linspace(self.waveloop[0]['c1'][0][i][0], self.waveloop[0]['c1'][0][i][-1],
+                                                  5 * (len(self.waveloop[0]['c1'][0][i]) - 1) + 1)
+                            wave_02 = f1(wave_01)
+                            self.waveloop[0]['c1'][0][i] = wave_01.tolist()
+                            self.waveloop[0]['c1'][1][i] = wave_02.tolist()
+                            f2 = interpolate.interp1d(self.waveloop[0]['c2'][0][i], self.waveloop[0]['c2'][1][i],
+                                                      kind='cubic')
+                            wave_03 = np.linspace(self.waveloop[0]['c2'][0][i][0], self.waveloop[0]['c2'][0][i][-1],
+                                                  5 * (len(self.waveloop[0]['c2'][0][i]) - 1) + 1)
+                            wave_04 = f2(wave_03)
+                            self.waveloop[0]['c2'][0][i] = wave_03.tolist()
+                            self.waveloop[0]['c2'][1][i] = wave_04.tolist()
+                            # f1 = interpolate.PchipInterpolator(self.waveloop[0]['c1'][0][i],
+                            #                                    self.waveloop[0]['c1'][1][i])
+                            # wave_01 = np.linspace(self.waveloop[0]['c1'][0][i][0], self.waveloop[0]['c1'][0][i][-1],
+                            #                       5 * (len(self.waveloop[0]['c1'][0][i]) - 1) + 1)
+                            # wave_02 = f1(wave_01)
+                            # self.waveloop[0]['c1'][0][i] = wave_01.tolist()
+                            # self.waveloop[0]['c1'][1][i] = wave_02.tolist()
+                            # f2 = interpolate.PchipInterpolator(self.waveloop[0]['c2'][0][i],
+                            #                                    self.waveloop[0]['c2'][1][i])
+                            # wave_03 = np.linspace(self.waveloop[0]['c2'][0][i][0], self.waveloop[0]['c2'][0][i][-1],
+                            #                       5 * (len(self.waveloop[0]['c2'][0][i]) - 1) + 1)
+                            # wave_04 = f2(wave_03)
+                            # self.waveloop[0]['c2'][0][i] = wave_03.tolist()
+                            # self.waveloop[0]['c2'][1][i] = wave_04.tolist()
                         # c1
                         t1 = tools.Wavetools(self.waveloop[0]['c1'][0][i], self.waveloop[0]['c1'][1][i])
                         e_1 = t1.get_energy(0.2)
@@ -646,18 +764,35 @@ class myFrame(wx.Frame):
 
                         if e_1 > self.lt_start_l and e_1 < self.lt_start_r \
                                 and e_2 > self.lt_stop_l and e_2 < self.lt_stop_r :
-                            t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
-                            t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
+                            # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.6)
+                            # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.6)
+                            # t_start = t1.get_time_cfd_gaus(self.start_fraction, 0.6)
+                            # t_stop = t2.get_time_cfd_gaus(self.stop_fraction, 0.6)
                             # t_start = t1.get_time_cfd_linear(self.start_fraction)
-                            # t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                            # t_stop = t2.get_time_cfd_linear(self.start_fraction)
+                            t_start = t1.get_time_cfd_interpolation(self.start_fraction)
+                            t_stop = t2.get_time_cfd_interpolation(self.start_fraction)
+                            t_start_l = t1.get_time_cfd_linear(self.start_fraction)
+                            t_stop_l = t2.get_time_cfd_linear(self.stop_fraction)
                             self.lifetime.append(t_stop - t_start)
+                            self.lifetime_linear.append(t_stop_l - t_start_l)
                             self.start_energy.append(e_1)
                             self.stop_energy.append(e_2)
-                            #print(t_stop - t_start)
                             c_num_2 = c_num_2 + 1
                             self.total_counts = self.total_counts + 1
+                            if e_1 > self.lt_sp_start_l and e_1 < self.lt_sp_start_r and e_2 > self.lt_sp_stop_l \
+                                    and e_2 < self.lt_sp_stop_r:
+                                self.lifetime_sp.append(t_stop - t_start)
 
                 else:
+                    if self.intplo_switch == 1:
+                        f1 = interpolate.interp1d(self.waveloop[0]['c1'][0][i], self.waveloop[0]['c1'][1][i],
+                                                  kind='quadratic')
+                        wave_01 = np.linspace(self.waveloop[0]['c1'][0][i][0], self.waveloop[0]['c1'][0][i][-1],
+                                              5 * (len(self.waveloop[0]['c1'][0][i]) - 1) + 1)
+                        wave_02 = f1(wave_01)
+                        self.waveloop[0]['c1'][0][i] = wave_01
+                        self.waveloop[0]['c1'][1][i] = wave_02
                     # c1
                     t1 = tools.Wavetools(self.waveloop[0]['c1'][0], self.waveloop[0]['c1'][1])
                     e_1 = t1.get_energy(0.2)
@@ -671,19 +806,27 @@ class myFrame(wx.Frame):
                     self.c_num_1 = self.c_num_1 + 1
                     if e_1 > self.lt_start_l and e_1 < self.lt_start_r and e_2 > self.lt_stop_l \
                             and e_2 < self.lt_stop_r:
-                        # t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.4)
-                        # t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.4)
-                        t_start = t1.get_time_cfd_linear(self.start_fraction)
-                        t_stop = t2.get_time_cfd_linear(self.stop_fraction)
+                        t_start = t1.get_time_cfd_poln(self.start_fraction, 4, 0.6)
+                        t_stop = t2.get_time_cfd_poln(self.stop_fraction, 4, 0.6)
+                        # t_start = t1.get_time_cfd_linear(self.start_fraction)
+                        # t_stop = t2.get_time_cfd_linear(self.start_fraction)
+                        # t_start = t1.get_time_cfd_interpolation(self.start_fraction)
+                        # t_stop = t2.get_time_cfd_interpolation(self.start_fraction)
+                        t_start_l = t1.get_time_cfd_linear(self.start_fraction)
+                        t_stop_l = t2.get_time_cfd_linear(self.stop_fraction)
                         self.lifetime.append(t_stop - t_start)
+                        self.lifetime_linear.append(t_stop_l - t_start_l)
                         self.start_energy.append(e_1)
                         self.stop_energy.append(e_2)
                         c_num_2 = c_num_2 + 1
                         self.total_counts = self.total_counts + 1
+                        if e_1 > self.lt_sp_start_l and e_1 < self.lt_sp_start_r and e_2 > self.lt_sp_stop_l \
+                                and e_2 < self.lt_sp_stop_r:
+                            self.lifetime_sp.append(t_stop - t_start)
                 if self.c_num_1 % 500 == 0:
                     self.drawHistF_lt.clf()
                     self.a_lt = self.drawHistF_lt.add_subplot(111)
-                    self.h_lifetime = self.a_lt.hist(self.lifetime, self.lt_bins, range=(self.lt_l, self.lt_r))
+                    self.h_lifetime = self.a_lt.hist(self.lifetime_sp, self.lt_bins, range=(self.lt_l, self.lt_r))
                     self.a_lt.semilogy()
                     self.drawHistCanvas_lt.draw()
                 t_02 = time.time()
@@ -712,7 +855,7 @@ class myFrame(wx.Frame):
             self.dir_name = fd.GetDirectory()
             try:
                 with open(os.path.join(self.dir_name, self.file_name), 'w', encoding='utf-8') as f:
-                    text = plt.hist(self.lifetime, self.lt_bins, range=(self.lt_l, self.lt_r))
+                    text = plt.hist(self.lifetime_sp, self.lt_bins, range=(self.lt_l, self.lt_r))
                     f.write('bin_width: ' + str((self.lt_r - self.lt_l)/self.lt_bins) + '\n')
                     for i in range(0, len(text[0])):
                         f.write(str(int(text[0][i])) + '\n')
@@ -739,7 +882,8 @@ class myFrame(wx.Frame):
             try:
                 with open(os.path.join(self.dir_name, self.file_name), 'w', encoding='utf-8') as f:
                     for i in range(0, len(self.lifetime)):
-                        f.write(str(self.lifetime[i]) + ' ' + str(self.start_energy[i]) + ' ' + str(self.stop_energy[i]) + '\n')
+                        f.write(str(self.lifetime[i]) + ' ' + str(self.lifetime_linear[i]) + ' ' + str(self.start_energy[i]) + ' ' + str(self.stop_energy[i]) + '\n')
+                        # f.write(str(self.lifetime[i]) + ' ' + str(self.start_energy[i]) + ' ' + str(self.stop_energy[i]) + '\n')
                     save_msg = wx.MessageDialog(self, '文件已保存', '提示')
             except FileNotFoundError:
                 save_msg = wx.MessageDialog(self, '保存失败,无效的保存路径', '提示')

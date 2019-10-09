@@ -1,8 +1,10 @@
 import numpy as np
 from numpy.linalg import cholesky
+import scipy.signal as signal
 import tools as tl1
 import matplotlib.pyplot as plt
 import time
+from scipy import interpolate
 sampleNo = 1000000
 mu = 85
 sigma = 4
@@ -11,6 +13,7 @@ s = np.random.normal(mu, sigma, sampleNo)
 t0_1 = time.time()
 #h1 = plt.hist(s, 300,range=(0, 300))
 c = [-10,-5,0,5,3,10,15,-20,25]
+print(c[-1])
 b = [10,23,20]
 d = [c,b]
 print(d)
@@ -42,27 +45,32 @@ with open(filename1) as file1_object:
 tr1 = tl1.Wavetools(time_1, volt_1, basenum=9000)
 print(tr1.find_baseline())
 t_0 = time.time()
-for i in range(0, 100):
-    # tr1.get_time_cfd_linear(0.2)
-    tr1.get_time_cfd_poln(0.2, 3, 0.4)
-    # print(tr1.get_time_cfd_linear(0.2))
-    # print(tr1.get_time_cfd_poln(0.2, 4, 0.4))
+# for i in range(0, 100):
+#     # tr1.get_time_cfd_linear(0.2)
+#     tr1.get_time_cfd_poln(0.2, 3, 0.4)
+#     # print(tr1.get_time_cfd_linear(0.2))
+#     # print(tr1.get_time_cfd_poln(0.2, 4, 0.4))
 t_1 = time.time()
 print('time')
 print(t_1 - t_0)
 print(tr1.get_slope())
-l1 = plt.plot(time_1, volt_1)
+t_0 = time.time()
+# f = interpolate.interp1d(time_1, volt_1, kind='quadratic')
+f2 = interpolate.PchipInterpolator(time_1, volt_1)
+xnew = np.linspace(time_1[0], time_1[-1], 5*(len(time_1) - 1) + 1)
+ynew = f2(xnew)
+t_1 = time.time()
+print('time')
+print(t_1 - t_0)
+plt.plot(time_1, volt_1)
+plt.plot(xnew, ynew)
 plt.show()
 
-str1 = 'asd'
-str2 = 1
-str3 = "asd " + str(str2)
-print(str3)
-
-test_l = [0, 1, 3, 168, 172]
-print(len(test_l))
-test_l.pop(0)
-print(test_l)
+prompt = "\nEnter 'quit'\n"
+message = ''
+while message != 'quit':
+	message = input(prompt)
+	print(message)
 # import wx
 # import os
 
