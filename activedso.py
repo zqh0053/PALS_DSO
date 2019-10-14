@@ -2,7 +2,7 @@ import win32com.client
 import matplotlib.pyplot as plt
 import time
 dso = win32com.client.Dispatch('LeCroy.ActiveDSOCtrl.1')
-dso.MakeConnection("IP:192.168.0.101")
+dso.MakeConnection("IP:211.86.148.140")
 #dso.WriteString("C1:START",1)
 # dso.WriteString("C1:VDIV .60",1)
 # dso.WriteString("C2:VDIV .60",1)
@@ -29,7 +29,7 @@ t0_1 = time.time()
 i = 0
 plt.ion()
 plt.figure(1)
-while i < 1:
+while i < 1000000:
     plt.clf()
     t1 = time.time()
     Waveform = dso.GetScaledWaveformWithTimes("C1",200000,0)
