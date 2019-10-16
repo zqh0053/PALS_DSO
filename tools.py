@@ -49,6 +49,19 @@ class Wavetools():
             energy = energy + bin*(voltage - self.base)
         return energy
 
+    def get_energy_2(self, bin):
+        energy = 0.
+        max_channel = self.voltage0.index(self.max_0)
+        voltage_1 = []
+        for k in range(0, len(self.voltage0)):
+            voltage_1.append(self.voltage0[k])
+            if k > max_channel:
+                if self.voltage0[k] < self.base:
+                    break
+        for voltage in voltage_1:
+            energy = energy + bin*(voltage - self.base)
+        return energy
+
     def get_amplitude(self):
         amp = self.max_0 - self.base
         return amp

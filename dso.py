@@ -3,32 +3,32 @@ import numpy as np
 import tools as tl1
 
 class Dso():
-    def __init__(self,parameters):
+    def __init__(self, parameters):
         self.parameters = parameters
         self.switch0 = 0
         self.dso = win32com.client.Dispatch('LeCroy.ActiveDSOCtrl.1')
         self.dso.MakeConnection("IP:211.86.148.140")
-        #self.dso.WriteString("C1:ASET", 1)
-        #self.dso.WriteString("C2:ASET", 1)
-        self.dso.WriteString("C1:VDIV .60", 1)
-        self.dso.WriteString("C2:VDIV .60", 1)
-        self.dso.WriteString("C1:TRLV " + str(self.parameters['C1_TRLV']), 1)
-        self.dso.WriteString("C2:TRLV " + str(self.parameters['C2_TRLV']), 1)
-        self.dso.WriteString("C1:TRSL NEG", 1)
-        self.dso.WriteString("C2:TRSL NEG", 1)
-        self.dso.WriteString("C1:OFST 1.2", 1)
-        self.dso.WriteString("C2:OFST 1.2", 1)
-        if self.parameters['SEQ'] == 'ON':
-            self.dso.WriteString("C1:SEQ ON," + str(self.parameters['SEQ_N']), True)
-        else:
-            self.dso.WriteString("SEQ OFF", 1)
-        self.dso.WriteString("C1:TIME_DIV 5NS", 1)  # 越大取样点数越多
-        self.dso.WriteString("C2:TIME_DIV 5NS", 1)
-        self.dso.WriteString("TRSE TEQ,SR,C2,QL,C1,HT,TL,HV,30E-9 S", 1)
-        self.dso.WriteString("C1:TRMD?", True)
-        str1 = self.dso.ReadString(80)
-        print(str1)
-        self.dso.WriteString("TRDL 10NS", 1)  # timedelay
+        # #self.dso.WriteString("C1:ASET", 1)
+        # #self.dso.WriteString("C2:ASET", 1)
+        # self.dso.WriteString("C1:VDIV .60", 1)
+        # self.dso.WriteString("C2:VDIV .60", 1)
+        # self.dso.WriteString("C1:TRLV " + str(self.parameters['C1_TRLV']), 1)
+        # self.dso.WriteString("C2:TRLV " + str(self.parameters['C2_TRLV']), 1)
+        # self.dso.WriteString("C1:TRSL NEG", 1)
+        # self.dso.WriteString("C2:TRSL NEG", 1)
+        # self.dso.WriteString("C1:OFST 1.2", 1)
+        # self.dso.WriteString("C2:OFST 1.2", 1)
+        # if self.parameters['SEQ'] == 'ON':
+        #     self.dso.WriteString("C1:SEQ ON," + str(self.parameters['SEQ_N']), True)
+        # else:
+        #     self.dso.WriteString("SEQ OFF", 1)
+        # self.dso.WriteString("C1:TIME_DIV 5NS", 1)  # 越大取样点数越多
+        # self.dso.WriteString("C2:TIME_DIV 5NS", 1)
+        # self.dso.WriteString("TRSE TEQ,SR,C2,QL,C1,HT,TL,HV,30E-9 S", 1)
+        # self.dso.WriteString("C1:TRMD?", True)
+        # str1 = self.dso.ReadString(80)
+        # print(str1)
+        # self.dso.WriteString("TRDL 10NS", 1)  # timedelay
 
     def get_wave(self):
         # c1_waveform_0 = self.dso.GetScaledWaveformWithTimes("C1", 200000, 0)
@@ -40,10 +40,10 @@ class Dso():
         c1_waveform_0 = []
         c2_waveform_0 = []
         c1_waveform_0 = self.dso.GetScaledWaveformWithTimes("C1", 300000, 0)
-        c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 300000, 0)
+        c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C3", 300000, 0)
         while len(c1_waveform_0) == 0 or len(c2_waveform_0) == 0:
             c1_waveform_0 = self.dso.GetScaledWaveformWithTimes("C1", 300000, 0)
-            c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C2", 300000, 0)
+            c2_waveform_0 = self.dso.GetScaledWaveformWithTimes("C3", 300000, 0)
         c1_waveform_time = np.array(c1_waveform_0[0])
         c1_waveform_v = np.array(c1_waveform_0[1])
         c2_waveform_time = np.array(c2_waveform_0[0])
