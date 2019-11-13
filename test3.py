@@ -15,8 +15,8 @@
 # while message != 'quit':
 #     message = input(prompt)
 #     print(message)
-import win32com.client
-import dso
+# import win32com.client
+# import dso
 import operator
 import tools
 import matplotlib.pyplot as plt
